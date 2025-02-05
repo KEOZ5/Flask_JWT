@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request, make_response, render_template
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt
 from flask_jwt_extended import JWTManager
+from datetime import timedelta  # Import de timedelta pour définir l'expiration du jeton
 
 app = Flask(__name__)
 
@@ -27,8 +28,12 @@ def login():
     else:
         return jsonify({"msg": "Mauvais utilisateur ou mot de passe"}), 401
 
-    # Création du jeton JWT avec le rôle
-    access_token = create_access_token(identity=username, additional_claims={"roles": role})
+    # Création du jeton JWT avec le rôle et une expiration d'1 heure
+    access_token = create_access_token(
+        identity=username, 
+        additional_claims={"roles": role}, 
+        expires_delta=timedelta(hours=1)  # Jeton valide pendant 1 heure
+    )
 
     # Création de la réponse et stockage du jeton dans un cookie
     response = make_response(jsonify({"msg": "Login réussi, jeton stocké dans un cookie"}))
