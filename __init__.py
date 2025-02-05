@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, make_response, render_template
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt
 from flask_jwt_extended import JWTManager
 
@@ -8,18 +8,18 @@ app = Flask(__name__)
 app.config["JWT_SECRET_KEY"] = "Ma_clé_secrete"  # C'est une clé secrète pour signer les JWT
 jwt = JWTManager(app)
 
-# Route publique d'accueil
+# Route publique d'accueil (affiche le formulaire HTML)
 @app.route('/')
-def hello_world():
-    return jsonify(message="Bienvenue sur l'API JWT!")
+def home():
+    return render_template('formulaire.html')
 
-# Route de login pour obtenir un jeton JWT
+# Route de login pour obtenir un jeton JWT et le stocker dans un cookie
 @app.route("/login", methods=["POST"])
 def login():
-    username = request.json.get("username", None)
-    password = request.json.get("password", None)
+    username = request.form.get("username", None)
+    password = request.form.get("password", None)
 
-    # Exemple de vérification des utilisateurs et rôles
+    # Vérification des utilisateurs et de leurs rôles
     if username == "admin" and password == "admin":
         role = "admin"
     elif username == "test" and password == "test":
@@ -27,11 +27,15 @@ def login():
     else:
         return jsonify({"msg": "Mauvais utilisateur ou mot de passe"}), 401
 
-    # Génération du jeton avec un champ 'roles'
+    # Création du jeton JWT avec le rôle
     access_token = create_access_token(identity=username, additional_claims={"roles": role})
-    return jsonify(access_token=access_token)
 
-# Route protégée (requiert un jeton valide)
+    # Création de la réponse et stockage du jeton dans un cookie
+    response = make_response(jsonify({"msg": "Login réussi, jeton stocké dans un cookie"}))
+    response.set_cookie("access_token", access_token, httponly=True)  # Cookie sécurisé et HTTPOnly
+    return response
+
+# Route protégée (requiert un jeton valide dans un cookie)
 @app.route("/protected", methods=["GET"])
 @jwt_required()
 def protected():
